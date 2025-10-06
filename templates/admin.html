@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Panel</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <img src="{{ url_for('static', filename='university_banner.jpg') }}" alt="Dhofar University Banner" style="width: 100%; height: auto; display: block; margin-bottom: 20px;">
+        <h1>Admin Panel</h1>
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul>{% for message in messages %}<li>{{ message }}</li>{% endfor %}</ul>
+            {% endif %}
+        {% endwith %}
+
+        <h2>Add University</h2>
+        <form method="POST" action="{{ url_for('add_university') }}">
+            <label>Name: <input type="text" name="name" required></label><br><br>
+            <button type="submit">Add</button>
+        </form>
+
+        <h2>Add Plan</h2>
+        <form method="POST" action="{{ url_for('add_plan') }}">
+            <label>Major: <input type="text" name="major" required></label><br><br>
+            <label>University: <select name="university_id">
+                {% for uni in universities %}
+                    <option value="{{ uni.id }}">{{ uni.name }}</option>
+                {% endfor %}
+            </select></label><br><br>
+            <button type="submit">Add</button>
+        </form>
+
+        <h2>Add Course</h2>
+        <form method="POST" action="{{ url_for('add_course') }}">
+            <label>Title: <input type="text" name="title" required></label><br><br>
+            <label>Description: <textarea name="description" required></textarea></label><br><br>
+            <label>Credits: <input type="number" name="credits" required></label><br><br>
+            <label>Department: <input type="text" name="department" required></label><br><br>
+            <label>Language: <select name="language"><option value="en">English</option><option value="ar">Arabic</option></select></label><br><br>
+            <label>University: <select name="university_id">
+                {% for uni in universities %}
+                    <option value="{{ uni.id }}">{{ uni.name }}</option>
+                {% endfor %}
+            </select></label><br><br>
+            <button type="submit">Add</button>
+        </form>
+
+        <h2>Existing Courses</h2>
+        <table border="1">
+            <tr><th>ID</th><th>Title</th><th>University</th><th>Credits</th></tr>
+            {% for course in courses %}
+            <tr>
+                <td>{{ course.id }}</td>
+                <td>{{ course.title }}</td>
+                <td>{{ course.university.name if course.university else 'None' }}</td>
+                <td>{{ course.credits }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <h2>Plans</h2>
+        <table border="1">
+            <tr><th>ID</th><th>Major</th><th>University</th></tr>
+            {% for plan in plans %}
+            <tr>
+                <td>{{ plan.id }}</td>
+                <td>{{ plan.major }}</td>
+                <td>{{ plan.university.name if plan.university else 'None' }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <h2>Equivalency Activity Log</h2>
+        <table border="1">
+            <tr><th>ID</th><th>User</th><th>Input</th><th>Score</th><th>Decision</th><th>Time</th><th>Report</th></tr>
+            {% for hist in history %}
+            <tr>
+                <td>{{ hist.id }}</td>
+                <td>{{ hist.user.username if hist.user else 'Anon' }}</td>
+                <td>{{ hist.input_data[:50] }}...</td>
+                <td>{{ "%.1f"|format(hist.equivalency_score) }}%</td>
+                <td>{{ hist.decision }}</td>
+                <td>{{ hist.timestamp }}</td>
+                <td><a href="{{ url_for('generate_report', history_id=hist.id) }}">Download PDF</a></td>
+            </tr>
+            {% endfor %}
+        </table><br>
+
+        <a href="{{ url_for('logout') }}">Logout</a>
+    </div>
+</body>
+</html>

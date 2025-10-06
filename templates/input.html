@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Course Input</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <img src="{{ url_for('static', filename='university_banner.jpg') }}" alt="Dhofar University Banner" style="width: 100%; height: auto; display: block; margin-bottom: 20px;">
+        <h1>Course Equivalency Checker</h1>
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul>{% for message in messages %}<li>{{ message }}</li>{% endfor %}</ul>
+            {% endif %}
+        {% endwith %}
+        <form id="courseForm" method="POST" action="{{ url_for('compare') }}" enctype="multipart/form-data">
+            <label>Compare Type: 
+                <select name="compare_type" id="compare_type" onchange="toggleFields()">
+                    <option value="single">Single Course</option>
+                    <option value="set">Set of Courses</option>
+                    <option value="plan">Full Plan</option>
+                </select>
+            </label><br><br>
+
+            <!-- Single Course Fields -->
+            <div id="single_fields">
+                <label>Course name: <input type="text" name="title" required></label><br><br>
+                <label>Credit hours: <input type="number" name="credits" required></label><br><br>
+                <label>Description: <textarea name="description" required></textarea></label><br><br>
+            </div>
+
+            <!-- Set of Courses Fields -->
+            <div id="set_fields" style="display:none;">
+                <div id="course_set">
+                    <div class="course_entry">
+                        <label>Course 1 name: <input type="text" name="titles[]" required></label>
+                        <label>Credits: <input type="number" name="credits[]" required></label>
+                        <label>Description: <textarea name="descs[]" required></textarea></label>
+                    </div>
+                </div>
+                <button type="button" onclick="addCourseEntry()">Add Another Course</button>
+            </div>
+
+            <!-- Full Plan Fields -->
+            <div id="plan_fields" style="display:none;">
+                <label>Upload Plan (CSV/JSON): <input type="file" name="file" required></label><br><br>
+                <p>CSV Format: title,description,credits per row.</p>
+            </div>
+
+            <button type="submit">Check Equivalency</button>
+        </form><br>
+        <a href="{{ url_for('logout') }}">Logout</a>
+    </div>
+    <script>
+        function toggleFields() {
+            var type = document.getElementById('compare_type').value;
+            var singleFields = document.getElementById('single_fields');
+            var setFields = document.getElementById('set_fields');
+            var planFields = document.getElementById('plan_fields');
+
+            // Toggle visibility
+            singleFields.style.display = type === 'single' ? 'block' : 'none';
+            setFields.style.display = type === 'set' ? 'block' : 'none';
+            planFields.style.display = type === 'plan' ? 'block' : 'none';
+
+            // Toggle 'required' attributes to avoid validation errors on hidden fields
+            toggleRequired(singleFields, type === 'single');
+            toggleRequired(setFields, type === 'set');
+            toggleRequired(planFields, type === 'plan');
+        }
+
+        function toggleRequired(container, isVisible) {
+            var inputs = container.querySelectorAll('input[required], textarea[required]');
+            inputs.forEach(function(input) {
+                input.required = isVisible;
+            });
+            // For set: Also toggle on dynamic added fields
+            if (container.id === 'set_fields') {
+                var allSetInputs = document.querySelectorAll('#set_fields input[required], #set_fields textarea[required]');
+                allSetInputs.forEach(function(input) {
+                    input.required = isVisible;
+                });
+            }
+        }
+
+        function addCourseEntry() {
+            var container = document.getElementById('course_set');
+            var entry = document.createElement('div');
+            entry.className = 'course_entry';
+            entry.innerHTML = `
+                <label>Course name: <input type="text" name="titles[]" required></label>
+                <label>Credits: <input type="number" name="credits[]" required></label>
+                <label>Description: <textarea name="descs[]" required></textarea></label>
+                <button type="button" onclick="this.parentElement.remove()">Remove</button>
+            `;
+            container.appendChild(entry);
+            // If set_fields is visible, ensure new fields are required
+            if (document.getElementById('set_fields').style.display !== 'none') {
+                var newInputs = entry.querySelectorAll('input[required], textarea[required]');
+                newInputs.forEach(function(input) {
+                    input.required = true;
+                });
+            }
+        }
+
+        // Initial call to set state
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleFields();  // Default to single
+        });
+    </script>
+</body>
+</html>

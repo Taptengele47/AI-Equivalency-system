@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <img src="{{ url_for('static', filename='university_banner.jpg') }}" alt="Dhofar University Banner" style="width: 100%; height: auto; display: block; margin-bottom: 20px;">
+        <h1>Register</h1>
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul>{% for message in messages %}<li>{{ message }}</li>{% endfor %}</ul>
+            {% endif %}
+        {% endwith %}
+        <form method="POST">
+            <label>Username: <input type="text" name="username" required></label><br><br>
+            <label>Password: <input type="password" name="password" required></label><br><br>
+            <label>Role: <select name="role"><option value="student">Student</option><option value="admin">Admin</option></select></label><br><br>
+            <button type="submit">Register</button>
+        </form>
+        <a href="{{ url_for('login') }}">Login</a>
+    </div>
+</body>
+</html>

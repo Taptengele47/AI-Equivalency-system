@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dhofar AI Equivalency System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Course Equivalency Checker</h1>
+        <form id="courseForm">
+            <label>University name: <input type="text" id="university" required></label><br><br>
+            <label>Major: <input type="text" id="major" required></label><br><br>
+            <label>Course name: <input type="text" id="title" required></label><br><br>
+            <label>Credit hours: <input type="number" id="credits" required></label><br><br>
+            <label>Description: <textarea id="description" required></textarea></label><br><br>
+            <button type="submit">Check Equivalency</button>
+        </form>
+        <div id="results"></div>
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

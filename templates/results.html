@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <img src="{{ url_for('static', filename='university_banner.jpg') }}" alt="Dhofar University Banner" style="width: 100%; height: auto; display: block; margin-bottom: 20px;">
+        <h1>Equivalency Results</h1>
+        {% if compare_type == 'plan' %}
+            <h2>Plan Overall Score: {{ "%.1f"|format(overall_score) }}%</h2>
+            <table border="1">
+                <tr><th>Input Course</th><th>Matched DU Course</th><th>Score</th></tr>
+                {% for res in results %}
+                <tr>
+                    <td>{{ res.input.title }}</td>
+                    <td>{{ res.matched.title if res.matched else 'None' }}</td>
+                    <td>{{ "%.1f"|format(res.score) }}%</td>
+                </tr>
+                {% endfor %}
+            </table>
+        {% else %}
+            <p><strong>Input:</strong> {{ input_data }}</p>
+            <p><strong>Matched DU Course:</strong> {{ match_title }} ({{ match_credits }} credits)</p>
+            <p><strong>Score:</strong> {{ "%.1f"|format(score) }}%</p>
+            <p><strong>Decision:</strong> {{ decision | upper }}</p>
+        {% endif %}
+        <a href="{{ url_for('student_input') }}">Back to Input</a> | <a href="{{ url_for('logout') }}">Logout</a>
+    </div>
+</body>
+</html>
