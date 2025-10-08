@@ -12,9 +12,15 @@ import csv
 import json
 from config import SECRET_KEY, UPLOAD_FOLDER, ALLOWED_EXTENSIONS
 
+from models import create_tables  # If added
+
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+@app.before_first_request
+def setup_db():
+    create_tables()  # Runs once on first request
 
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
