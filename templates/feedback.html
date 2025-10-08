@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Provide Feedback</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Feedback</h1>
+        <form method="POST">
+            <label>Message: <textarea name="message" required rows="5"></textarea></label><br><br>
+            <button type="submit">Submit Feedback</button>
+        </form>
+        <a href="{{ url_for('student_input') }}">Back to Input</a>
+    </div>
+</body>
+</html>

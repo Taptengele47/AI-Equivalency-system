@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, send_file
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from models import Session, User, University, UniversityCourse, Plan, ComparisonHistory
+from models import Session, User, University, UniversityCourse, Plan, ComparisonHistory, Feedback
 from ai_comparator import compute_equivalency, compute_plan_equivalency
 from datetime import datetime
 from reportlab.lib.pagesizes import letter
@@ -54,10 +54,10 @@ def login():
             flask_user.id = user.id
             flask_user.role = user.role
             login_user(flask_user)
-            # Always redirect, with fallback
+            
             if user.role == 'admin':
                 return redirect(url_for('admin_page'))
-            return redirect(url_for('student_input'))  # Or flash('Welcome!') + redirect
+            return redirect(url_for('student_input'))  
         flash('Invalid username or password')
     return render_template('login.html')
 
@@ -67,13 +67,13 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
-@app.route('/register', methods=['GET', 'POST'])  # For testing, admin can add users later
+@app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         session = Session()
         username = request.form['username']
         password = request.form['password']
-        role = request.form['role']
+        role = 'student'  
         existing = session.query(User).filter_by(username=username).first()
         if existing:
             flash('Username taken')
@@ -82,17 +82,32 @@ def register():
             new_user.set_password(password)
             session.add(new_user)
             session.commit()
-            flash('Registered! Login now.')
+            flash('Registered as student! Login now.')
         session.close()
         return redirect(url_for('login'))
-    return render_template('register.html')
-
+    return render_template('register.html')  
 @app.route('/student', methods=['GET', 'POST'])
 @login_required
 def student_input():
     if current_user.role != 'student':
         return redirect(url_for('index'))
     return render_template('input.html')
+
+@app.route('/feedback', methods=['GET', 'POST'])
+@login_required
+def feedback():
+    if request.method == 'POST':
+        session = Session()
+        feedback = Feedback(
+            user_id=current_user.id,
+            message=request.form['message']
+        )
+        session.add(feedback)
+        session.commit()
+        session.close()
+        flash('Feedback submitted! Thank you.')
+        return redirect(url_for('student_input'))  
+    return render_template('feedback.html')
 
 @app.route('/compare', methods=['POST'])
 @login_required
@@ -101,7 +116,7 @@ def compare():
         return redirect(url_for('index'))
     session = Session()
     try:
-        compare_type = request.form.get('compare_type', 'single')  # single, set, plan
+        compare_type = request.form.get('compare_type', 'single')  
         dhofar_courses = session.query(UniversityCourse).filter(UniversityCourse.university.has(name='Dhofar University')).all()
 
         if compare_type == 'single':
@@ -113,7 +128,6 @@ def compare():
             decision = 'accepted' if score >= 80 else 'partial' if score >= 50 else 'rejected'
 
         elif compare_type == 'set':
-            # Assume multiple fields: titles[], descs[], credits[]
             titles = request.form.getlist('titles[]')
             descs = request.form.getlist('descs[]')
             credits = request.form.getlist('credits[]')
@@ -144,7 +158,7 @@ def compare():
                 input_data = json.dumps(input_plan)
                 score = overall_score
                 decision = 'accepted' if overall_score >= 80 else 'partial' if overall_score >= 50 else 'rejected'
-                # For plan, render special results
+                
                 return render_template('results.html', results=results, overall_score=overall_score, compare_type='plan')
 
         history = ComparisonHistory(
@@ -177,7 +191,7 @@ def admin_page():
     if current_user.role != 'admin':
         return redirect(url_for('index'))
     session = Session()
-    # Eager loads (from previous fix)
+    
     courses = session.query(UniversityCourse).options(joinedload(UniversityCourse.university)).all()
     plans = session.query(Plan).options(joinedload(Plan.university)).all()
     history = session.query(ComparisonHistory).options(
@@ -185,9 +199,9 @@ def admin_page():
         joinedload(ComparisonHistory.matched_course)
     ).all()
     universities = session.query(University).all()
+    feedbacks = session.query(Feedback).options(joinedload(Feedback.user)).all() 
     session.close()
 
-    # Helper to format input_data for display
     def format_input_data(input_str):
         if not input_str:
             return "No data"
@@ -201,20 +215,54 @@ def admin_page():
         except json.JSONDecodeError:
             return "Invalid data"
 
-    # Format history inputs
+    
     formatted_history = []
     for hist in history:
         formatted_input = format_input_data(hist.input_data)
         formatted_history.append({
             'id': hist.id,
             'user': hist.user.username if hist.user else 'Anon',
-            'input_data': formatted_input,  # Now linear/formatted
+            'input_data': formatted_input,  
             'equivalency_score': hist.equivalency_score,
             'decision': hist.decision,
             'timestamp': hist.timestamp
         })
 
-    return render_template('admin.html', courses=courses, plans=plans, history=formatted_history, universities=universities)
+    return render_template('admin.html', courses=courses, plans=plans, history=formatted_history, universities=universities, feedbacks=feedbacks)
+
+@app.route('/admin/clear_history', methods=['POST'])
+@login_required
+def clear_history():
+    if current_user.role != 'admin':
+        return redirect(url_for('index'))
+    session = Session()
+    session.query(ComparisonHistory).delete()  # Delete all
+    session.commit()
+    session.close()
+    flash('History cleared successfully!')
+    return redirect(url_for('admin_page'))
+
+@app.route('/admin/create_admin', methods=['GET', 'POST'])
+@login_required
+def create_admin():
+    if current_user.role != 'admin':
+        return redirect(url_for('index'))
+    if request.method == 'POST':
+        session = Session()
+        username = request.form['username']
+        password = request.form['password']
+        existing = session.query(User).filter_by(username=username).first()
+        if existing:
+            flash('Username taken')
+        else:
+            new_user = User(username=username, role='admin')  
+            new_user.set_password(password)
+            session.add(new_user)
+            session.commit()
+            flash('Admin created successfully!')
+        session.close()
+        return redirect(url_for('admin_page'))
+    return render_template('create_admin.html')  
 
 @app.route('/add_course', methods=['POST'])
 @login_required
@@ -223,7 +271,7 @@ def add_course():
         return redirect(url_for('index'))
     session = Session()
     try:
-        uni_id = int(request.form['university_id'])  # Dropdown in form
+        uni_id = int(request.form['university_id'])  
         new_course = UniversityCourse(
             title=request.form['title'],
             description=request.form['description'],
@@ -285,10 +333,10 @@ def generate_report(history_id):
     if current_user.role != 'admin':
         return redirect(url_for('index'))
     session = Session()
-    # Eagerly load 'user' (and 'matched_course' if needed) to avoid detached error
+    
     history = session.query(ComparisonHistory).options(
         joinedload(ComparisonHistory.user),
-        joinedload(ComparisonHistory.matched_course)  # Optional, if accessed later
+        joinedload(ComparisonHistory.matched_course)  
     ).get(history_id)
     session.close()
     if not history:
@@ -308,4 +356,5 @@ def generate_report(history_id):
     return send_file(pdf_path, as_attachment=True)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))  # Bind to Render's $PORT or local 5000
+    app.run(host='0.0.0.0', port=port, debug=False)  # 0.0.0.0 for external access; debug=False for prod

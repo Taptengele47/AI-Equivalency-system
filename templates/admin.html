@@ -88,6 +88,27 @@
             {% endfor %}
         </table><br>
 
+        <h2>Feedbacks</h2>
+<table border="1">
+    <tr><th>ID</th><th>User</th><th>Message</th><th>Time</th></tr>
+    {% for fb in feedbacks %}
+    <tr>
+        <td>{{ fb.id }}</td>
+        <td>{{ fb.user.username if fb.user else 'Anon' }}</td>
+        <td>{{ fb.message[:100] }}...</td>
+        <td>{{ fb.timestamp }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<h2>Clear History</h2>
+<form method="POST" action="{{ url_for('clear_history') }}" onsubmit="return confirm('Clear all history?')">
+    <button type="submit">Clear All History</button>
+</form>
+
+<h2>Create New Admin</h2>
+<a href="{{ url_for('create_admin') }}">Create Admin</a>
+
         <a href="{{ url_for('logout') }}">Logout</a>
     </div>
 </body>

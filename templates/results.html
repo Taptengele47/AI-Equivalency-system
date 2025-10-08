@@ -27,7 +27,7 @@
             <p><strong>Score:</strong> {{ "%.1f"|format(score) }}%</p>
             <p><strong>Decision:</strong> {{ decision | upper }}</p>
         {% endif %}
-        <a href="{{ url_for('student_input') }}">Back to Input</a> | <a href="{{ url_for('logout') }}">Logout</a>
+        <a href="{{ url_for('student_input') }}">Back to Input</a> | <a href="{{ url_for('logout') }}">Logout</a> | <a href="{{ url_for('feedback') }}">Provide Feedback</a>
     </div>
 </body>
 </html>

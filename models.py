@@ -13,7 +13,7 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     username = Column(String(100), unique=True, nullable=False)
     password_hash = Column(String(200), nullable=False)
-    role = Column(String(20), nullable=False)  # 'student' or 'admin'
+    role = Column(String(20), nullable=False)  
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -26,7 +26,7 @@ class University(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(200), nullable=False)
     courses = relationship("UniversityCourse", back_populates="university")
-    plans = relationship("Plan", back_populates="university")  # FIXED: University has many plans (one-to-many)
+    plans = relationship("Plan", back_populates="university")  
 
 class UniversityCourse(Base):
     __tablename__ = 'university_courses'
@@ -45,18 +45,26 @@ class Plan(Base):
     id = Column(Integer, primary_key=True)
     major = Column(String(100), nullable=False)
     university_id = Column(Integer, ForeignKey('universities.id'))
-    university = relationship("University", back_populates="plans")  # FIXED: Plan belongs to one university
+    university = relationship("University", back_populates="plans")  
 
 class ComparisonHistory(Base):
     __tablename__ = 'comparison_history'
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id'))
-    input_data = Column(Text)  # JSON-like for single/set/plan
+    input_data = Column(Text)  
     equivalency_score = Column(Float)
     matched_course_id = Column(Integer, ForeignKey('university_courses.id'))
     timestamp = Column(DateTime, default=datetime.utcnow)
-    decision = Column(String(20))  # 'accepted', 'rejected', 'partial'
+    decision = Column(String(20))  
     matched_course = relationship("UniversityCourse")
+    user = relationship("User")
+
+class Feedback(Base):
+    __tablename__ = 'feedbacks'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    message = Column(Text, nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow)
     user = relationship("User")
 
 Base.metadata.create_all(engine)
