@@ -67,6 +67,4 @@ class Feedback(Base):
     timestamp = Column(DateTime, default=datetime.utcnow)
     user = relationship("User")
 
-def create_tables():
-    Base.metadata.create_all(engine)
-    print("Tables created!")
+#Base.metadata.create_all(engine)
