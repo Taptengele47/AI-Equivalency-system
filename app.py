@@ -12,15 +12,9 @@ import csv
 import json
 from config import SECRET_KEY, UPLOAD_FOLDER, ALLOWED_EXTENSIONS
 
-from models import create_tables  # If added
-
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-@app.before_first_request
-def setup_db():
-    create_tables()  # Runs once on first request
 
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
@@ -361,6 +355,8 @@ def generate_report(history_id):
 
     return send_file(pdf_path, as_attachment=True)
 
+import os  
+
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))  # Bind to Render's $PORT or local 5000
-    app.run(host='0.0.0.0', port=port, debug=False)  # 0.0.0.0 for external access; debug=False for prod
+    port = int(os.environ.get('PORT', 5000))  
+    app.run(host='0.0.0.0', port=port, debug=False)  
