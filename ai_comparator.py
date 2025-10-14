@@ -6,7 +6,11 @@ import spacy
 nlp = spacy.load('en_core_web_sm')
 
 
-model = SentenceTransformer('all-MiniLM-L6-v2')
+model = SentenceTransformer('all-MiniLM-L6-v2', device='cpu')
+
+import logging
+logging.basicConfig(level=logging.DEBUG)
+logging.debug("Model loaded successfully")
 
 def preprocess_text(text):
     """

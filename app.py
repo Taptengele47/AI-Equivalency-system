@@ -10,6 +10,9 @@ from sqlalchemy.orm import joinedload
 import os
 import csv
 import json
+import logging
+logging.basicConfig(level=logging.DEBUG)
+logging.debug("App starting - Imports complete")
 try:
     from config import SECRET_KEY, UPLOAD_FOLDER, ALLOWED_EXTENSIONS
 except ImportError as e:
