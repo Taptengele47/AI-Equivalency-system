@@ -10,7 +10,13 @@ from sqlalchemy.orm import joinedload
 import os
 import csv
 import json
-from config import SECRET_KEY, UPLOAD_FOLDER, ALLOWED_EXTENSIONS
+try:
+    from config import SECRET_KEY, UPLOAD_FOLDER, ALLOWED_EXTENSIONS
+except ImportError as e:
+    print(f"Config import error: {e}")  # Debug
+    SECRET_KEY = os.urandom(24).hex()
+    UPLOAD_FOLDER = 'uploads'
+    ALLOWED_EXTENSIONS = {'csv', 'json'}
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
