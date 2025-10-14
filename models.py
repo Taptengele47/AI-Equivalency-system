@@ -67,4 +67,4 @@ class Feedback(Base):
     timestamp = Column(DateTime, default=datetime.utcnow)
     user = relationship("User")
 
-#Base.metadata.create_all(engine)
+Base.metadata.create_all(engine)
