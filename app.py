@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, send_file
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from models import Session, User, University, UniversityCourse, Plan, ComparisonHistory, Feedback
+from models import Session, User, University, UniversityCourse, Plan, ComparisonHistory
 from ai_comparator import compute_equivalency, compute_plan_equivalency
 from datetime import datetime
 from reportlab.lib.pagesizes import letter
@@ -9,14 +9,18 @@ from werkzeug.utils import secure_filename
 from sqlalchemy.orm import joinedload
 import os
 import csv
-import json
+import json  # Add if missing (for parsing input_data)
 import logging
-logging.basicConfig(level=logging.DEBUG)
-logging.debug("App starting - Imports complete")
+
+# Set logging to INFO for prod (less spam than DEBUG)
+logging.basicConfig(level=logging.INFO)
+logging.info("App starting - Imports complete")
+
+# Safe config import with fallback
 try:
     from config import SECRET_KEY, UPLOAD_FOLDER, ALLOWED_EXTENSIONS
 except ImportError as e:
-    print(f"Config import error: {e}")  # Debug
+    logging.warning(f"Config import error: {e}")
     SECRET_KEY = os.urandom(24).hex()
     UPLOAD_FOLDER = 'uploads'
     ALLOWED_EXTENSIONS = {'csv', 'json'}
@@ -63,7 +67,6 @@ def login():
             flask_user.id = user.id
             flask_user.role = user.role
             login_user(flask_user)
-            
             if user.role == 'admin':
                 return redirect(url_for('admin_page'))
             return redirect(url_for('student_input'))  
@@ -82,7 +85,7 @@ def register():
         session = Session()
         username = request.form['username']
         password = request.form['password']
-        role = 'student'  
+        role = 'student'  # Default to student (admin via separate route)
         existing = session.query(User).filter_by(username=username).first()
         if existing:
             flash('Username taken')
@@ -95,6 +98,7 @@ def register():
         session.close()
         return redirect(url_for('login'))
     return render_template('register.html')  
+
 @app.route('/student', methods=['GET', 'POST'])
 @login_required
 def student_input():
@@ -107,14 +111,19 @@ def student_input():
 def feedback():
     if request.method == 'POST':
         session = Session()
-        feedback = Feedback(
-            user_id=current_user.id,
-            message=request.form['message']
-        )
-        session.add(feedback)
-        session.commit()
+        # Safe Feedback import/add (handle if model missing)
+        try:
+            from models import Feedback
+            feedback = Feedback(
+                user_id=current_user.id,
+                message=request.form['message']
+            )
+            session.add(feedback)
+            session.commit()
+            flash('Feedback submitted! Thank you.')
+        except ImportError:
+            flash('Feedback feature not available yet.')
         session.close()
-        flash('Feedback submitted! Thank you.')
         return redirect(url_for('student_input'))  
     return render_template('feedback.html')
 
@@ -133,7 +142,7 @@ def compare():
             input_desc = request.form['description']
             input_credits = int(request.form['credits'])
             matched, score = compute_equivalency([input_desc], dhofar_courses)
-            input_data = json.dumps({'title': input_title, 'desc': input_desc, 'credits': input_credits})
+            input_dict = {'title': input_title, 'desc': input_desc, 'credits': input_credits}  # Dict for easy render
             decision = 'accepted' if score >= 80 else 'partial' if score >= 50 else 'rejected'
 
         elif compare_type == 'set':
@@ -141,7 +150,7 @@ def compare():
             descs = request.form.getlist('descs[]')
             credits = request.form.getlist('credits[]')
             matched, score = compute_equivalency(descs, dhofar_courses, is_set=True)
-            input_data = json.dumps([{'title': t, 'desc': d, 'credits': c} for t, d, c in zip(titles, descs, credits)])
+            input_dict = [{'title': t, 'desc': d, 'credits': c} for t, d, c in zip(titles, descs, credits)]
             decision = 'accepted' if score >= 80 else 'partial' if score >= 50 else 'rejected'
 
         elif compare_type == 'plan':
@@ -164,15 +173,12 @@ def compare():
                         input_plan = json.load(f)
                 os.remove(filepath)  # Cleanup
                 results, overall_score = compute_plan_equivalency(input_plan, dhofar_courses)
-                input_data = json.dumps(input_plan)
-                score = overall_score
                 decision = 'accepted' if overall_score >= 80 else 'partial' if overall_score >= 50 else 'rejected'
-                
                 return render_template('results.html', results=results, overall_score=overall_score, compare_type='plan')
 
         history = ComparisonHistory(
             user_id=current_user.id,
-            input_data=input_data,
+            input_data=json.dumps(input_dict),  # Store as JSON
             equivalency_score=score,
             matched_course_id=matched.id if matched else None,
             decision=decision
@@ -184,7 +190,7 @@ def compare():
                                match_title=matched.title if matched else 'None',
                                match_credits=matched.credits if matched else 0,
                                score=score,
-                               input_data=input_data,
+                               input_data=input_dict,  # Pass parsed dict for Arabic
                                decision=decision,
                                compare_type=compare_type)
     except Exception as e:
@@ -192,7 +198,6 @@ def compare():
         return redirect(url_for('student_input'))
     finally:
         session.close()
-
 
 @app.route('/admin')
 @login_required
@@ -208,7 +213,13 @@ def admin_page():
         joinedload(ComparisonHistory.matched_course)
     ).all()
     universities = session.query(University).all()
-    feedbacks = session.query(Feedback).options(joinedload(Feedback.user)).all() 
+    # Safe Feedback (if model exists)
+    try:
+        from models import Feedback
+        feedbacks = session.query(Feedback).options(joinedload(Feedback.user)).all() 
+    except ImportError:
+        feedbacks = []
+        logging.warning("Feedback model not found")
     session.close()
 
     def format_input_data(input_str):
@@ -224,7 +235,6 @@ def admin_page():
         except json.JSONDecodeError:
             return "Invalid data"
 
-    
     formatted_history = []
     for hist in history:
         formatted_input = format_input_data(hist.input_data)
@@ -368,4 +378,4 @@ import os
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))  
-    app.run(host='0.0.0.0', port=port, debug=False)  
+    app.run(host='0.0.0.0', port=port, debug=False)
