@@ -374,6 +374,10 @@ def generate_report(history_id):
 
     return send_file(pdf_path, as_attachment=True)
 
+@app.route('/health')
+def health():
+    return "OK", 200
+
 import os  
 
 if __name__ == '__main__':
