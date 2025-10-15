@@ -50,6 +50,10 @@ def load_user(user_id):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+@app.route('/health')
+def health():
+    return "OK", 200  
+
 @app.route('/')
 def index():
     return render_template('home.html')
@@ -373,10 +377,7 @@ def generate_report(history_id):
     c.save()
 
     return send_file(pdf_path, as_attachment=True)
-
-@app.route('/health')
-def health():
-    return "OK", 200
+    
 
 import os  
 
